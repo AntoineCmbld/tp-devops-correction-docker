@@ -49,20 +49,20 @@ jobs:
         with:
           # relative path to the place where source code with Dockerfile is located
           context: ./simple-api
-          push: true
           # Note: tags has to be all lower-case
           tags:  ${{secrets.DOCKER_USERNAME}}/tp-devops-simple-api:latest
+          push: ${{ github.ref == 'refs/heads/main' }}
 
       - name: Build image and push database
         uses: docker/build-push-action@v6
         with:
           context: ./database
-          push: true
           tags: ${{ secrets.DOCKER_USERNAME }}/tp-devops-simple-api:latest
+          push: ${{ github.ref == 'refs/heads/main' }}
 
       - name: Build image and push httpd
         uses: docker/build-push-action@v6
         with:
           context: ./http-server
-          push: true
           tags: ${{ secrets.DOCKER_USERNAME }}/tp-devops-simple-api:latest
+          push: ${{ github.ref == 'refs/heads/main' }}
