@@ -31,7 +31,7 @@ jobs:
         run: mvn -B verify sonar:sonar \
           -Dsonar.projectKey=AntoineCmbld_tp-devops-correction-docker \
           -Dsonar.organization=antoinecmbld \
-          -Dsonar.host.url=https://sonarcloud.io \
+          -Dsonar.host.url="https://sonarcloud.io" \
           -Dsonar.login=${{ secrets.SONAR_TOKEN }} \
               
 
