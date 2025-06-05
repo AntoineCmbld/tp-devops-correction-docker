@@ -86,13 +86,7 @@ jobs:
       - name: Deploy containers over SSH
         run: |
           ssh -o StrictHostKeyChecking=no ${{ secrets.REMOTE_USER }}@${{ secrets.REMOTE_HOST }} << 'EOF'
-
-            docker network create my_app_network || true
-
-            # Copy env file (if not already on the server)
-            echo "DATABASE_HOST=db" > /home/admin/db.env
-            echo "DATABASE_PASSWORD=psw" >> /home/admin/db.env
-
+          
             # Start PostgreSQL container
             sudo docker rm -f db || true
             sudo docker pull antoinecmbld/database:latest
@@ -116,11 +110,6 @@ jobs:
               -e DATABASE_PASSWORD=psw \
               --restart always \
               antoinecmbld/simple-api:latest
-
-            # Copy Apache config
-            cat <<EOCONF > /home/admin/httpd.conf
-            # Include the content of your httpd.conf here
-            EOCONF
 
             # Start HTTPD proxy
             sudo docker rm -f my_proxy || true
