@@ -83,15 +83,54 @@ jobs:
         with:
           ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
 
-      - name: Deploy container over SSH
+      - name: Deploy containers over SSH
         run: |
           ssh -o StrictHostKeyChecking=no ${{ secrets.REMOTE_USER }}@${{ secrets.REMOTE_HOST }} << 'EOF'
+
+            docker network create my_app_network || true
+
+            # Copy env file (if not already on the server)
+            echo "DATABASE_HOST=db" > /home/admin/db.env
+            echo "DATABASE_PASSWORD=psw" >> /home/admin/db.env
+
+            # Start PostgreSQL container
+            docker rm -f db || true
+            docker pull antoinecmbld/database:latest
+            docker run -d \
+              --name db \
+              --env-file /home/admin/db.env \
+              --network my_app_network \
+              -e POSTGRES_DB=db \
+              -e POSTGRES_USER=usr \
+              -e POSTGRES_PASSWORD=psw \
+              --restart always \
+              antoinecmbld/database:latest
+
+            # Start backend API container
+            docker rm -f simple-api || true
             docker pull antoinecmbld/simple-api:latest
-            docker stop simple-api || true
-            docker rm simple-api || true
             docker run -d \
               --name simple-api \
               --network my_app_network \
-              -p 8080:8080 \
+              -e DATABASE_HOST=db \
+              -e DATABASE_PASSWORD=psw \
+              --restart always \
               antoinecmbld/simple-api:latest
+
+            # Copy Apache config
+            cat <<EOCONF > /home/admin/httpd.conf
+            # Include the content of your httpd.conf here
+            EOCONF
+
+            # Start HTTPD proxy
+            docker rm -f my_proxy || true
+            docker pull antoinecmbld/http-server:latest
+            docker run -d \
+              --name my_proxy \
+              --network my_app_network \
+              -p 80:80 \
+              -v /home/admin/httpd.conf:/usr/local/apache2/conf/httpd.conf:ro \
+              --restart always \
+              antoinecmbld/http-server:latest
+
           EOF
