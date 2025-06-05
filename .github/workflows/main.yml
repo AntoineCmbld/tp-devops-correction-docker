@@ -83,15 +83,15 @@ jobs:
         with:
           ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
 
-      - name: Deploy backend container over SSH
+      - name: Deploy container over SSH
         run: |
           ssh -o StrictHostKeyChecking=no ${{ secrets.REMOTE_USER }}@${{ secrets.REMOTE_HOST }} << 'EOF'
-            docker pull ${{ secrets.DOCKER_USERNAME }}/simple-api:latest
+            docker pull antoinecmbld/simple-api:latest
             docker stop simple-api || true
             docker rm simple-api || true
             docker run -d \
               --name simple-api \
               --network my_app_network \
               -p 8080:8080 \
-              ${{ secrets.DOCKER_USERNAME }}/simple-api:latest
+              antoinecmbld/simple-api:latest
           EOF
