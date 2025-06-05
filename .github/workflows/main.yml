@@ -94,9 +94,9 @@ jobs:
             echo "DATABASE_PASSWORD=psw" >> /home/admin/db.env
 
             # Start PostgreSQL container
-            docker rm -f db || true
-            docker pull antoinecmbld/database:latest
-            docker run -d \
+            sudo docker rm -f db || true
+            sudo docker pull antoinecmbld/database:latest
+            sudo docker run -d \
               --name db \
               --env-file /home/admin/db.env \
               --network my_app_network \
@@ -107,9 +107,9 @@ jobs:
               antoinecmbld/database:latest
 
             # Start backend API container
-            docker rm -f simple-api || true
-            docker pull antoinecmbld/simple-api:latest
-            docker run -d \
+            sudo docker rm -f simple-api || true
+            sudo docker pull antoinecmbld/simple-api:latest
+            sudo docker run -d \
               --name simple-api \
               --network my_app_network \
               -e DATABASE_HOST=db \
@@ -123,9 +123,9 @@ jobs:
             EOCONF
 
             # Start HTTPD proxy
-            docker rm -f my_proxy || true
-            docker pull antoinecmbld/http-server:latest
-            docker run -d \
+            sudo docker rm -f my_proxy || true
+            sudo docker pull antoinecmbld/http-server:latest
+            sudo docker run -d \
               --name my_proxy \
               --network my_app_network \
               -p 80:80 \
