@@ -68,60 +68,55 @@ jobs:
           push: true
 
   deploy:
-  name: Deploy to Server
-  needs: build-and-push-docker-image
-  runs-on: ubuntu-latest
-  environment: env
-  if: github.ref == 'refs/heads/main'
+    name: Deploy to Server
+    needs: build-and-push-docker-image
+    runs-on: ubuntu-latest
+    environment: env
+    if: github.ref == 'refs/heads/main'
 
-  steps:
-    - name: Checkout repo
-      uses: actions/checkout@v4
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
 
-    - name: Setup SSH
-      uses: webfactory/ssh-agent@v0.9.0
-      with:
-        ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+      - name: Setup SSH
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
 
-    - name: Deploy containers over SSH
-      env:
-        DB_NAME: ${{ secrets.DB_NAME }}
-        DB_USER: ${{ secrets.DB_USER }}
-        DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
-      run: |
-        ssh -o StrictHostKeyChecking=no ${{ secrets.REMOTE_USER }}@${{ secrets.REMOTE_HOST }} << EOF
+      - name: Deploy containers over SSH
+        run: |
+          ssh -o StrictHostKeyChecking=no ${{ secrets.REMOTE_USER }}@${{ secrets.REMOTE_HOST }} << 'EOF'
 
-          docker network create my_app_network || true
+            # Start PostgreSQL container
+            sudo docker rm -f db || true
+            sudo docker pull antoinecmbld/database:latest
+            sudo docker run -d \
+              --name db \
+              --env-file /home/admin/db.env \
+              --network my_app_network \
+              --restart always \
+              antoinecmbld/database:latest
 
-          # Write environment variables to file securely
-          cat <<EOT > /home/admin/db.env
-          POSTGRES_DB=$DB_NAME
-          POSTGRES_USER=$DB_USER
-          POSTGRES_PASSWORD=$DB_PASSWORD
-          EOT
+            # Start backend API container
+            sudo docker rm -f simple-api || true
+            sudo docker pull antoinecmbld/simple-api:latest
+            sudo docker run -d \
+              --name simple-api \
+              --network my_app_network \
+              -e DATABASE_HOST=db \
+              -e DATABASE_PASSWORD=${{ secrets.DB_PASSWORD }} \
+              --restart always \
+              antoinecmbld/simple-api:latest
 
-          # Start PostgreSQL container
-          docker rm -f db || true
-          docker pull antoinecmbld/database:latest
-          docker run -d \
-            --name db \
-            --env-file /home/admin/db.env \
-            --network my_app_network \
-            --restart always \
-            antoinecmbld/database:latest
+            # Start HTTPD proxy
+            sudo docker rm -f my_proxy || true
+            sudo docker pull antoinecmbld/http-server:latest
+            sudo docker run -d \
+              --name my_proxy \
+              --network my_app_network \
+              -p 80:80 \
+              -v /home/admin/httpd.conf:/usr/local/apache2/conf/httpd.conf:ro \
+              --restart always \
+              antoinecmbld/http-server:latest
 
-          # Start backend container
-          docker rm -f simple-api || true
-          docker pull antoinecmbld/simple-api:latest
-          docker run -d \
-            --name simple-api \
-            --network my_app_network \
-            -e DATABASE_HOST=db \
-            -e DATABASE_PASSWORD=$DB_PASSWORD \
-            --restart always \
-            antoinecmbld/simple-api:latest
-
-          # Copy Apache config and start proxy (as before)
-          # ...
-
-        EOF
+          EOF
