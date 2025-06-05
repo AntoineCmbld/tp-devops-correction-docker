@@ -3,6 +3,7 @@
   community.docker.docker_container:
     name: simple-api
     image: antoinecmbld/simple-api:latest
+    pull: yes
     networks:
       - name: my_app_network
     restart_policy: always
