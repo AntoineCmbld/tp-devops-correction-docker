@@ -7,8 +7,6 @@
     networks:
       - name: my_app_network
     restart_policy: always
-    published_ports:
-      - "8080:8080"  # hostPort:containerPort
     env:
       DATABASE_HOST: "db"
       DATABASE_PASSWORD: "psw"
